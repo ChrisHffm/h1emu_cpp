@@ -10,7 +10,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include "entity.h"
-#include "zone.h"
+#include "loginserver.h"
 #include "structures.h"
 
 class session : public entity
@@ -18,7 +18,7 @@ class session : public entity
 public: 
 	// construct a connection with the given io service
 	session(boost::shared_ptr<boost::asio::ip::udp::socket> socket, 
-		boost::asio::ip::udp::endpoint endpoint, zone& zone);
+		boost::asio::ip::udp::endpoint endpoint, loginserver& zone);
 
 	boost::asio::ip::udp::socket& socket(); 
 
@@ -47,9 +47,9 @@ private:
 	std::deque<std::string> message_queue;
 
 	/// The buffer for incoming data.
-	boost::array<char, 1024> buff_;
+	boost::array<char, UDP_LENGTH> buff_;
 
-	zone& zone_;
+	loginserver& loginserver_;
 
 	player player_;
 };

@@ -1,57 +1,137 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="source\loginserver">
+      <UniqueIdentifier>{22f905b2-cff9-43f3-859f-59c2e8e9fa04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\server">
+      <UniqueIdentifier>{3848dcdd-8da6-43c6-85cf-64c958078342}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\session">
+      <UniqueIdentifier>{c294b8c5-c0f6-4e62-a661-fe5ebc6121ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="header\base">
+      <UniqueIdentifier>{43b9a16a-488e-4466-8d39-7e201d9d4215}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\base\server">
+      <UniqueIdentifier>{a02b3fe2-6f13-43c2-9d15-0082e5ae4c40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\base\loginserver">
+      <UniqueIdentifier>{8f78c259-73db-4857-b1c5-a28006d5b1c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\base\entity">
+      <UniqueIdentifier>{db56c4dd-a1f6-45ed-8a5b-2e67ad89fed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\base\structures">
+      <UniqueIdentifier>{c3b3b510-f0da-45ec-9201-c3728c96f596}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\base\session">
+      <UniqueIdentifier>{9db9840f-3eb4-4646-baa1-db51cb5c1dd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\base\SOE">
+      <UniqueIdentifier>{35db9fac-ea77-4ef9-85b5-43b0959ac232}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\base\SOE\Util">
+      <UniqueIdentifier>{26cd00bb-968b-4e01-bb86-b57065346dd1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\plugin">
+      <UniqueIdentifier>{c254309a-7866-4437-bdb3-ed9e3a37db01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\plugin">
+      <UniqueIdentifier>{e7c08e8a-f548-45ca-a0aa-c2e34fc9d9ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
+      <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="SOEStream.h">
+      <Filter>header\base\SOE</Filter>
+    </ClInclude>
+    <ClInclude Include="RC4.h">
+      <Filter>header\base\SOE\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="CRC32.h">
+      <Filter>header\base\SOE\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="loginserver.h">
+      <Filter>header\base\loginserver</Filter>
     </ClInclude>
     <ClInclude Include="server.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="session.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="zone.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="structures.h">
-      <Filter>Header Files</Filter>
+      <Filter>header\base\server</Filter>
     </ClInclude>
     <ClInclude Include="entity.h">
-      <Filter>Header Files</Filter>
+      <Filter>header\base\entity</Filter>
+    </ClInclude>
+    <ClInclude Include="structures.h">
+      <Filter>header\base\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="session.h">
+      <Filter>header\base\session</Filter>
+    </ClInclude>
+    <ClInclude Include="packet_handling.h">
+      <Filter>header\base\SOE</Filter>
+    </ClInclude>
+    <ClInclude Include="player_role.h">
+      <Filter>header\plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="gas_station.h">
+      <Filter>header\plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="players_online.h">
+      <Filter>header\plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="afk.h">
+      <Filter>header\plugin</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="entry.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="loginserver.cpp">
+      <Filter>source\loginserver</Filter>
     </ClCompile>
     <ClCompile Include="server.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\server</Filter>
     </ClCompile>
     <ClCompile Include="session.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\session</Filter>
     </ClCompile>
-    <ClCompile Include="zone.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="player_role.cpp">
+      <Filter>source\plugin</Filter>
     </ClCompile>
+    <ClCompile Include="players_online.cpp">
+      <Filter>source\plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="gas_station.cpp">
+      <Filter>source\plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="afk.cpp">
+      <Filter>source\plugin</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="server.cpp.svd">
+      <Filter>source\server</Filter>
+    </None>
   </ItemGroup>
 </Project>

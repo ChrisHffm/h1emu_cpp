@@ -3,8 +3,7 @@
 #include <string>
 #include "server.h"
 
-int main()
-{
+int main() {
 
 	std::string ip = "127.0.0.1";
 	std::uint16_t port = 3302;

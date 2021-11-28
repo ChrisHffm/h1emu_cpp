@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <iostream>
 #include <exception>
-#include "zone.h"
+#include "loginserver.h"
 #include "entity.h"
 #include "session.h"
 
@@ -33,10 +33,10 @@ private:
 	boost::asio::io_service io_service;
 	boost::shared_ptr<boost::asio::ip::udp::socket> socket_;
 	boost::asio::ip::udp::endpoint remote_endpoint_;
-	boost::array<unsigned char, 512> recv_buffer_;
+	boost::array<unsigned char, UDP_LENGTH> recv_buffer_;
 
 	//The next connection to be accepted
 	boost::shared_ptr<session> new_session;
 
-	zone zone_;
+	loginserver loginserver_;
 };

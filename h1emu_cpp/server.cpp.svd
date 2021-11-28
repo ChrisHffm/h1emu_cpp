@@ -1,0 +1,257 @@
+#include "server.h"
+#include "server_utility.h"
+#include "ARC4.h"
+#include <fstream>
+#include <string>
+#include <iostream>
+
+using boost::asio::ip::udp;
+
+#define N 256   // 2^8
+
+void swap(unsigned char* a, unsigned char* b) {
+	int tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
+int KSA(char* key, unsigned char* S) {
+
+	int len = strlen(key);
+	int j = 0;
+
+	for (int i = 0; i < N; i++)
+		S[i] = i;
+
+	for (int i = 0; i < N; i++) {
+		j = (j + S[i] + key[i % len]) % N;
+
+		swap(&S[i], &S[j]);
+	}
+
+	return 0;
+}
+
+int PRGA(unsigned char* S, char* plaintext, unsigned char* ciphertext) {
+
+	int i = 0;
+	int j = 0;
+
+	for (size_t n = 0, len = strlen(plaintext); n < len; n++) {
+		i = (i + 1) % N;
+		j = (j + S[i]) % N;
+
+		swap(&S[i], &S[j]);
+		int rnd = S[(S[i] + S[j]) % N];
+
+		ciphertext[n] = rnd ^ plaintext[n];
+
+	}
+
+	return 0;
+}
+
+int RC4(char* key, char* plaintext, unsigned char* ciphertext) {
+
+	unsigned char S[N];
+	KSA(key, S);
+
+	PRGA(S, plaintext, ciphertext);
+
+	return 0;
+}
+
+server::server(std::string address, std::uint16_t port) :
+	io_service(),
+	socket_(boost::make_shared<udp::socket>
+		(io_service, udp::endpoint(boost::asio::ip::address::from_string(address), port)))
+{
+	if (socket_->is_open()) {
+		spdlog::info("socket is open");
+		start_receive();
+	}
+	else {
+		spdlog::error("socket is closed!");
+	}
+}
+
+void server::run() { io_service.run(); }
+
+void server::start_receive()
+{
+	socket_->async_receive_from(
+		boost::asio::buffer(recv_buffer_), remote_endpoint_,
+		boost::bind(&server::handle_receive, this,
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred));
+}
+
+void server::handle_receive(const boost::system::error_code& error,
+	std::size_t bytes_transferred)
+{
+	if (!error || error == boost::asio::error::message_size)
+	{
+		auto sender_id = boost::lexical_cast<std::string>(remote_endpoint_.port());
+
+		//Poco::MemoryInputStream in_stream((char*)recv_buffer_.data(), bytes_transferred);
+		//Poco::BinaryReader packet_in(in_stream, Poco::BinaryReader::NETWORK_BYTE_ORDER);
+
+		std::uint16_t soe_op_code;
+		packet_in >> soe_op_code;
+		
+		switch (soe_op_code)
+		{
+		case e_soe_op_code::session_req: {
+			auto client_session_id = zone_.parse_session_request(packet_in);
+
+			if (client_session_id == 0xFFF)
+				break;
+
+			new_session.reset(new session(socket_, remote_endpoint_, zone_));
+			new_session->start();
+
+			zone_.session_reply(sender_id, client_session_id);
+		} 
+		break;
+		case e_soe_op_code::disconnect: {
+			std::uint32_t	session_id;
+			std::uint16_t	client_disconnect_reason_id;
+
+			packet_in >> session_id;
+			packet_in >> client_disconnect_reason_id;
+
+			spdlog::warn("{} disconnected with reason: {}",
+				sender_id,
+				client_disconnect_reason_id
+			);
+		} 
+		break;
+		case e_soe_op_code::ping: break;
+		case e_soe_op_code::data: {
+			std::uint16_t			sequence_index;
+			std::string				temp_data;
+			std::uint32_t			packet_crc;
+
+			std::uint32_t			full_size = bytes_transferred - sizeof(soe_op_code) - sizeof(packet_crc);
+
+			// <=== read the sequence index from the packet ===>
+			packet_in >> sequence_index;
+			// <=== read encrypted data ===>
+			packet_in.readRaw(full_size, temp_data);
+			// <=== read the crc of the packet ===>
+			packet_in >> packet_crc;
+
+			spdlog::info("data (size: {})",
+				full_size
+			);
+		}
+		break;
+		case e_soe_op_code::data_fragmented:
+		{
+			static std::string		sequence_data;
+			static std::uint16_t	sequence_count = 0;
+			static std::uint16_t	next_sequence_index = 0;
+
+			std::uint16_t			sequence_index = 0;
+			static std::uint32_t	full_size;
+			std::string				temp_sequence_data;
+			std::uint32_t			packet_crc;
+
+			std::uint32_t			sequence_size = bytes_transferred - sizeof(soe_op_code) - sizeof(sequence_index) - sizeof(packet_crc);
+
+			// <=== read the sequence index from the packet ===>
+			packet_in >> sequence_index;
+			// <=== read the full size of the data fragmented if it's the first sequence ===>
+			if (!sequence_index)
+				packet_in >> full_size;
+			// <=== read data from the sequence ===>
+			packet_in.readRaw(sequence_size, temp_sequence_data);
+			// <=== read the crc of the packet ===>
+			packet_in >> packet_crc;
+
+			// <=== calculate the number of sequences we will receive ===>
+			if (!sequence_count)
+				sequence_count = full_size / 512;
+			
+			spdlog::critical("sequence_size: {} full_size: {}",
+				sequence_size,
+				full_size
+			);
+
+			// <=== append data from the received sequence to the final ===>
+			if (sequence_index == next_sequence_index) {
+				sequence_data.append(temp_sequence_data);
+				next_sequence_index++;
+			}
+			else {
+				spdlog::error("out of order sequence received! (sequence index: {} should be: {})",
+					sequence_index,
+					next_sequence_index);
+				break;
+			}
+
+			if (sequence_index == sequence_count) {
+				spdlog::info("sequences assembled, do whatever with the 'sequences_data' array ({})",
+					sequence_data.size()
+				);
+
+				unsigned char key[] = { 0x17, 0xBD, 0x08, 0x6B, 0x1B, 0x94, 0xF0, 0x2F, 0xF0, 0xEC, 0x53, 0xD7, 0x63, 0x58, 0x9B, 0x5F };
+				
+				ARC4 rc4;
+				rc4.setKey(key, sizeof(key));
+				char* dec = (char*)malloc(sequence_data.size() + 1);
+
+				rc4.encrypt((char*)sequence_data.data(), dec, sequence_data.length());
+				rc4.encrypt((char*)sequence_data.data(), dec, sequence_data.length());
+
+				std::ofstream out("output.txt");
+				out << sequence_data;
+				out.close();
+
+				sequence_data.clear();
+				next_sequence_index = 0;
+				sequence_count = 0;
+				full_size = 0;
+			}
+			// <=== this is a comment ==>
+			
+			//if (sequence_id == 2)
+			//{
+			//	Poco::MemoryInputStream data_stream((char*)sequence_data.data(), sequence_data.size());
+			//	Poco::BinaryReader data_in(data_stream, Poco::BinaryReader::NETWORK_BYTE_ORDER);
+
+
+			//	/*Poco::Buffer<char> buffer(1024);
+			//	Poco::MemoryOutputStream ostr(buffer.begin(), sizeof(buffer));
+
+			//	Poco::BinaryWriter writer(ostr, Poco::BinaryWriter::NETWORK_BYTE_ORDER);
+
+			//	generate_crc32_table();
+			//	auto crc_data = soe_crc32(1, buffer.begin(), static_cast<std::string::size_type>(ostr.charsWritten()));
+
+			//	spdlog::warn("building packet ack reply crc: 0x{:X}", crc_data);
+
+
+			//	writer << std::uint16_t(0x15);
+			//	writer << std::uint16_t(0);
+			//	writer << crc_data;
+
+			//	zone_.deliver(std::string(buffer.begin(), static_cast<std::string::size_type>(ostr.charsWritten())));*/
+			//}
+		}
+		break;
+		case e_soe_op_code::out_of_order: break;
+		case e_soe_op_code::ack_reliable_data: break;
+		case e_soe_op_code::multi_message: break;
+		}
+		
+		start_receive();
+	}
+}
+
+void server::handle_send(boost::shared_ptr<std::string> message,
+	const boost::system::error_code& error,
+	std::size_t bytes_transferre)
+{
+	//todo: :)
+}

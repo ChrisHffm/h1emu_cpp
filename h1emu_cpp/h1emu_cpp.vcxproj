@@ -151,25 +151,40 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="afk.h" />
+    <ClInclude Include="CRC32.h" />
+    <ClInclude Include="gas_station.h" />
+    <ClInclude Include="packet_handling.h" />
+    <ClInclude Include="players_online.h" />
+    <ClInclude Include="player_role.h" />
+    <ClInclude Include="RC4.h" />
+    <ClInclude Include="SOEStream.h" />
     <ClInclude Include="structures.h" />
     <ClInclude Include="entity.h" />
-    <ClInclude Include="zone.h" />
+    <ClInclude Include="loginserver.h" />
     <ClInclude Include="server.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="zone.cpp" />
+    <ClCompile Include="gas_station.cpp" />
+    <ClCompile Include="loginserver.cpp" />
+    <ClCompile Include="players_online.cpp" />
+    <ClCompile Include="player_role.cpp" />
     <ClCompile Include="server.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="entry.cpp" />
+    <ClCompile Include="afk.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="server.cpp.svd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

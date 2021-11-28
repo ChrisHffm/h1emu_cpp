@@ -1,4 +1,11 @@
+#include <fstream>
+#include <string>
+#include <iostream>
+
 #include "server.h"
+
+#include "RC4.h"
+#include "CRC32.h"
 
 using boost::asio::ip::udp;
 
@@ -16,10 +23,7 @@ server::server(std::string address, std::uint16_t port) :
 	}
 }
 
-void server::run() {
-
-	io_service.run();
-}
+void server::run() { io_service.run(); }
 
 void server::start_receive()
 {
@@ -35,148 +39,121 @@ void server::handle_receive(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::message_size)
 	{
-		auto sender_id = boost::lexical_cast<std::string>(remote_endpoint_.port());
+		try {
+			auto sender_id = boost::lexical_cast<std::string>(remote_endpoint_.port());
 
-		Poco::MemoryInputStream in_stream((char*)recv_buffer_.data(), bytes_transferred);
-		Poco::BinaryReader packet_in(in_stream, Poco::BinaryReader::NETWORK_BYTE_ORDER);
+			Packet p(recv_buffer_.data(), bytes_transferred);
 
-		std::uint16_t op_code;
-		packet_in >> op_code;
-		
-		switch (op_code)
-		{
-		case session_req:
-		{
-			std::uint32_t client_crc_length;
-			std::uint32_t client_session_id;
-			std::uint32_t client_udp_length;
-			std::string client_protocol;
+			p.add_field<std::uint16_t>("soe_op_code");
 
-			packet_in >> client_crc_length;
-			packet_in >> client_session_id;
-			packet_in >> client_udp_length;
-			packet_in.readRaw(11, client_protocol);
-
-			spdlog::warn("SessionRequest (crc_lenght: {}, session_id: {}, udp_length: {}, client_protocol: {})",
-				client_crc_length,
-				client_session_id,
-				client_udp_length,
-				client_protocol
-			);
-
-			// check if the protocol match the one we support.
-			if (client_protocol != "LoginUdp_11")
+			// <=== handle the data we receive accorded to the op code ===>
+			switch (p.get_field("soe_op_code"))
 			{
-				spdlog::error("couldn't start a session for the given entity (protocol mismatch)");
-				break;
+			case e_soe_op_code::session_req: {
+
+				p.set_name("session_req");
+				p.add_field<std::uint32_t>("crc_length");
+				p.add_field<std::uint32_t>("session_id");
+				p.add_field<std::uint32_t>("udp_length");
+				p.add_field<char*>("protocol", 12);
+
+				std::cout << "\n" << p << "\n";
+
+				new_session.reset(new session(socket_, remote_endpoint_, loginserver_));
+				new_session->start();
+
+				loginserver_.session_reply(sender_id, p.get_field("session_id"));
 			}
-
-			new_session.reset(new session(socket_, remote_endpoint_, zone_));
-			new_session->start();
-
-			zone_.session_reply(sender_id, client_session_id);
-		}
 			break;
-		case e_soe_op_code::multi:
-			spdlog::info("MultiPacket");
+			case e_soe_op_code::chl_data_frag_a: {
+
+				p.set_name("data_fragmented");
+
+				static std::string		app_data;
+				static std::uint16_t	sequence_count = 0;
+				static std::uint16_t	next_sequence_index = 0;
+
+				p.add_field<std::uint8_t>	("comp_flag");
+				p.add_field<std::uint16_t>	("sequence_index");
+
+				if (p.get_field("sequence_index") == FIRST_FLAG_SEQ)
+					p.add_field<std::uint32_t>("full_size");
+
+				auto app_data_length = p.bytes_left() /*- 2*/;
+
+				p.add_field<unsigned char*>("app_data", app_data_length);
+				//p.add_field<std::uint16_t>	("crc");
+
+				if (sequence_count == 0)
+					sequence_count = p.get_field("full_size") / UDP_LENGTH;
+
+				if (p.get_field("sequence_index") == next_sequence_index) {
+
+					loginserver_.ack(sender_id, next_sequence_index);
+
+					char app_data_frag[UDP_LENGTH];
+
+					p.get_field("app_data", app_data_frag);
+
+					app_data.append(app_data_frag, app_data_length);
+
+					next_sequence_index++;
+				}
+
+				if (p.get_field("sequence_index") == sequence_count) {
+					
+					std::vector<unsigned char> key = { 0x17, 0xbd, 0x08, 0x6b, 0x1b, 0x94, 0xf0, 0x2f, 0xf0, 0xec, 0x53, 0xd7, 0x63, 0x58, 0x9b, 0x5f };
+
+					SOE::RC4 RC4;
+					RC4.Init(key);
+
+					auto data = RC4.Parse((unsigned char*)app_data.data(), app_data.length());
+
+					Packet d(data.data(), data.size());
+
+					d.add_field<std::uint8_t>("h1z1_op_code");
+					spdlog::info("opcode: {}", d.get_field("h1z1_op_code"));
+					switch (d.get_field("h1z1_op_code"))
+					{
+					case e_h1z1_op_code::login_req:
+					{
+						loginserver_.login_reply(sender_id);
+					}
+					break;
+					}
+
+					app_data.clear();
+					next_sequence_index = 0;
+					sequence_count = 0;
+				}
+			}
 			break;
-		case e_soe_op_code::disconnect:
-		{
-			std::uint32_t	session_id;
-			std::uint16_t client_disconnect_reason_id;
+			case e_soe_op_code::disconnect: {
 
-			packet_in >> session_id;
-			packet_in >> client_disconnect_reason_id;
+				p.set_name("disconnect");
+				p.add_field<std::uint32_t>	("session_id");
+				p.add_field<std::uint16_t>	("disconnect_reason_id");
 
-			spdlog::warn("{} disconnected with reason: {}", sender_id, client_disconnect_reason_id);
-		}
+				spdlog::info("0x{:x} disconnected with reason: {}",
+					p.get_field(1),
+					p.get_field(2)
+				);
+
+				// #todo: erase the session maybe send the disconnect reason to connected clients ?
+			}
 			break;
-		case e_soe_op_code::ping:
-			spdlog::info("Ping");
-			break;
-		case e_soe_op_code::data:
-		{
-			spdlog::info("Data");
+			case e_soe_op_code::ping: {
 
-			static std::string data_sequence;
-
-			std::uint16_t packet_seq;
-			std::uint32_t packet_size = bytes_transferred - sizeof(std::uint16_t) - sizeof(std::uint32_t); // packet_size - op_code uint16 size - xor uint32 size
-			std::string packet_data;
-			std::uint16_t packet_crc;
-
-			packet_in >> packet_seq;
-			packet_in.readRaw(packet_size, packet_data);
-			packet_in >> packet_crc;
-			spdlog::debug("{} -> seq: {} crc: 0x{:X} data_size: {}", sender_id, packet_seq, packet_crc, packet_size);
-		}
-			break;
-		case e_soe_op_code::data_fragmented:
-		{
-			static std::string data_sequence;
-
-			std::uint16_t packet_seq;
-			std::uint32_t packet_size = bytes_transferred - sizeof(std::uint16_t) - sizeof(std::uint32_t); // packet_size - op_code uint16 size - xor uint32 size
-			std::string packet_data;
-			std::uint16_t packet_crc;
-
-			packet_in >> packet_seq;
-			packet_in.readRaw(packet_size, packet_data);
-			packet_in >> packet_crc;
-			spdlog::warn("{} -> seq: {} crc: 0x{:X} data_size: {}", sender_id, packet_seq, packet_crc, packet_size);
-
-			//check the sequence of the packet
-			if (packet_seq == 0)
-				data_sequence.clear();
-
-			data_sequence.append(packet_data);
-
-			if (packet_seq == 2)
-			{
-				Poco::MemoryInputStream data_stream((char*)data_sequence.data(), data_sequence.size());
-				Poco::BinaryReader data_in(data_stream, Poco::BinaryReader::NETWORK_BYTE_ORDER);
-
-				std::uint16_t data_op_code;
-				data_in >> data_op_code;
-
-				spdlog::warn("data -> op_code: 0x{:X} (size: {})", data_op_code, data_sequence.size());
-
-				Poco::Buffer<char> buffer(1024);
-				Poco::Buffer<char> buffer2(1024);
-				Poco::MemoryOutputStream ostr(buffer.begin(), sizeof(buffer));
-				Poco::MemoryOutputStream ostr2(buffer2.begin(), sizeof(buffer2));
-
-				Poco::BinaryWriter writer(ostr, Poco::BinaryWriter::NETWORK_BYTE_ORDER);
-				Poco::BinaryWriter writer2(ostr2, Poco::BinaryWriter::NETWORK_BYTE_ORDER);
-
-				writer << std::uint16_t(0x15);
-				writer << std::uint16_t(0);
-				writer << std::uint32_t(0xb303);
-
-				zone_.deliver(std::string(buffer.begin(), static_cast<std::string::size_type>(ostr.charsWritten())));
-
-				writer << std::uint16_t(0x15);
-				writer << std::uint16_t(1);
-				writer << std::uint32_t(0xb303);
-
-				zone_.deliver(std::string(buffer2.begin(), static_cast<std::string::size_type>(ostr2.charsWritten())));
-
+				loginserver_.pong(sender_id);
 
 			}
-
-			
+			break;
+			}
 		}
-			break;
-		case e_soe_op_code::out_of_order:
-			break;
-		case e_soe_op_code::ack_reliable_data:
-			break;
-		case e_soe_op_code::multi_message:
-			spdlog::info("MultiAppPacket");
-			break;
+		catch (std::exception& e) {
+			spdlog::critical("{}",
+				e.what());
 		}
-			//zone_.update_position(boost::lexical_cast<std::string>(remote_endpoint_.port()) , { x, y });
-		//
 
 		start_receive();
 	}
@@ -184,12 +161,7 @@ void server::handle_receive(const boost::system::error_code& error,
 
 void server::handle_send(boost::shared_ptr<std::string> message,
 	const boost::system::error_code& error,
-	std::size_t bytes_transferre)
+	std::size_t bytes_transferred)
 {
-	if (!error) {
-		std::cout << *message << " was sent" << std::endl;
-	}
-	else {
-		std::cout << error.message() << std::endl;
-	}
+	//todo: :)
 }

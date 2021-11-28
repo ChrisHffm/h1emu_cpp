@@ -1,15 +1,15 @@
 #include "session.h"
 
 session::session(boost::shared_ptr<boost::asio::ip::udp::socket> socket,
-	boost::asio::ip::udp::endpoint endpoint, zone& zone) :
-	socket_(socket), zone_(zone), remote_endpoint_(endpoint), player_(get_id())
+	boost::asio::ip::udp::endpoint endpoint, loginserver& loginserver) :
+	socket_(socket), loginserver_(loginserver), remote_endpoint_(endpoint), player_(get_id())
 {
 
 }
 
 void session::start()
 {
-	zone_.join(shared_from_this());
+	loginserver_.join(shared_from_this());
 }
 
 boost::asio::ip::udp::socket& session::socket()
