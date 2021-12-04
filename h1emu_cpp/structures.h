@@ -27,43 +27,32 @@ enum e_soe_op_code : std::uint16_t
 {
 	session_req			= 0x0001,
 	session_rep			= 0x0002,
-
 	multi				= 0x0003,
-
 	not_used			= 0x0004,
-
 	disconnect			= 0x0005,
-
 	ping				= 0x0006,
-
 	net_status_req		= 0x0007,
 	net_status_rep		= 0x0008,
-
 	chl_data_a			= 0x0009,
 	chl_data_b			= 0x000a,
 	chl_data_c			= 0x000b,
 	chl_data_d			= 0x000c,
-
 	chl_data_frag_a		= 0x000d,
 	chl_data_frag_b		= 0x000e,
 	chl_data_frag_c		= 0x000f,
 	chl_data_frag_d		= 0x0010,
-
 	out_of_order_a		= 0x0011,
 	out_of_order_b		= 0x0012,
 	out_of_order_c		= 0x0013,
 	out_of_order_d		= 0x0014,
-
 	ack_a				= 0x0015,
 	ack_b				= 0x0016,
 	ack_c				= 0x0017,
 	ack_d				= 0x0018,
-
 	multi_a				= 0x0019,
 	multi_b				= 0x001a,
 	multi_c				= 0x001b,
 	multi_d				= 0x001c,
-
 	fatal_error			= 0x001d,
 	fatal_error_rep		= 0x001e,
 
@@ -94,11 +83,11 @@ enum e_h1z1_op_code : std::uint8_t
 };
 
 struct player {
-	std::string		id;
-	std::string		transient_id;
-	std::string		name;
+	std::string			id;
+	std::string			transient_id;
+	std::string			name;
 
-	std::uint32_t	movement_code;
+	std::uint32_t		movement_code;
 
 	struct stats {
 		std::uint16_t	health;
@@ -108,28 +97,28 @@ struct player {
 		std::uint16_t	thirst;
 	};
 
-	vector3			position;
-	vector3			rotation;
-	vector3			looking_at;
+	vector3				position;
+	vector3				rotation;
+	vector3				looking_at;
 
 	player(std::string name) : name(name) {}
 };
 
 struct vehicule {
-	std::string		id;
-	std::string		transient_id;
-	std::string		world_id;
-	bool            is_managed;
-	bool            is_engine_on;
-	bool            is_locked;
-	vector3			position;
-	vector3			rotation;
-	vector4         scale;
-	std::uint16_t	color;
-	std::uint32_t	health;
-	std::uint32_t	fuel;
-	std::uint32_t	state;
-	std::vector<bool> seat;
+	std::string			id;
+	std::string			transient_id;
+	std::string			world_id;
+	bool				is_managed;
+	bool				is_engine_on;
+	bool				is_locked;
+	vector3				position;
+	vector3				rotation;
+	vector4				scale;
+	std::uint16_t		color;
+	std::uint32_t		health;
+	std::uint32_t		fuel;
+	std::uint32_t		state;
+	std::vector<bool>	seat;
 
 	vehicule(std::string id) : id(id) {}
 };

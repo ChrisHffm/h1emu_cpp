@@ -2,69 +2,65 @@
 
 namespace SOE
 {
-	class RC4
+	namespace RC4
 	{
-	private:
-		int i = 0;
-		int j = 0;
-		std::vector<int> Table;
+	    static bool Initiated = false;
+		static int i = 0;
+		static int j = 0;
+		static std::vector<int> Table;
+		static std::vector<unsigned char> key = {
+							0x17, 0xbd, 0x08, 0x6b, 0x1b, 0x94, 0xf0, 0x2f, 0xf0, 0xec, 0x53, 0xd7, 0x63, 0x58, 0x9b,
+							0x5f
+		};
 
-	public:
-		RC4()
+		static void Swap(int a, int b)
 		{
-			this->Table = std::vector<int>(256);
+			int k = Table[a];
+			Table[a] = Table[b];
+			Table[b] = k;
 		}
 
-		RC4(std::vector<unsigned char>& key)
-		{
-			this->Table = std::vector<int>(256);
-
-			this->Init(key);
-		}
-
-		void Init(std::vector<unsigned char>& key)
+        static void Init(std::vector<unsigned char>& key)
 		{
 			int k = key.size();
-			this->i = 0;
-			while (this->i < 256)
+			i = 0;
+			while (i < 256)
 			{
-				this->Table[this->i] = this->i;
-				this->i++;
+				Table[i] = i;
+				i++;
 			}
 
-			this->i = 0;
-			this->j = 0;
-			while (this->i < 0x0100)
+			i = 0;
+			j = 0;
+			while (i < 0x0100)
 			{
-				this->j = (((this->j + this->Table[this->i]) + key[(this->i % k)]) % 256);
-				this->Swap(this->i, this->j);
-				this->i++;
+				j = (((j + Table[i]) + key[(i % k)]) % 256);
+				Swap(i, j);
+				i++;
 			}
 
-			this->i = 0;
-			this->j = 0;
+			i = 0;
+			j = 0;
 		}
 
-		void Swap(int a, int b)
+		static std::vector<unsigned char> Parse(unsigned char* bytes, unsigned int size)
 		{
-			int k = this->Table[a];
-			this->Table[a] = this->Table[b];
-			this->Table[b] = k;
-		}
-
-		std::vector<unsigned char> Parse(unsigned char* bytes, unsigned int size)
-		{
+		    if (!Initiated) {
+		        Init(key);
+		        Initiated = true;
+		    }
+		     
 			int k = 0;
 			std::vector<unsigned char> result(size);
 			int pos = 0;
 
 			for (int a = 0; a < size; a++)
 			{
-				this->i = ((this->i + 1) % 256);
-				this->j = ((this->j + this->Table[this->i]) % 256);
-				this->Swap(this->i, this->j);
-				k = ((this->Table[this->i] + this->Table[this->j]) % 256);
-				result[pos++] = static_cast<unsigned char>(bytes[a] ^ this->Table[k]);
+				i = ((i + 1) % 256);
+				j = ((j + Table[i]) % 256);
+				Swap(i, j);
+				k = ((Table[i] + Table[j]) % 256);
+				result[pos++] = static_cast<unsigned char>(bytes[a] ^ Table[k]);
 			}
 
 			return result;

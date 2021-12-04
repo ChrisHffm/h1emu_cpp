@@ -16,7 +16,7 @@
 class server
 {
 public:
-	server(std::string address, std::uint16_t port);
+	server(const std::string& address, std::uint16_t port);
 	
 	void run();
 
@@ -39,4 +39,5 @@ private:
 	boost::shared_ptr<session> new_session;
 
 	loginserver loginserver_;
+	//gatewayserver gatewayserver__;
 };

@@ -154,6 +154,7 @@
     <ClInclude Include="afk.h" />
     <ClInclude Include="CRC32.h" />
     <ClInclude Include="gas_station.h" />
+    <ClInclude Include="gatewayserver.h" />
     <ClInclude Include="packet_handling.h" />
     <ClInclude Include="players_online.h" />
     <ClInclude Include="player_role.h" />
@@ -169,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gas_station.cpp" />
+    <ClCompile Include="gatewayserver.cpp" />
     <ClCompile Include="loginserver.cpp" />
     <ClCompile Include="players_online.cpp" />
     <ClCompile Include="player_role.cpp" />

@@ -21,7 +21,7 @@ public:
 
 	void pong(const std::string /*sender_id*/);
 
-	void login_reply(const std::string /*sender_id*/);
+	void login_reply(const std::string& /*sender_id*/);
 
 	void join(boost::shared_ptr<entity> /*entity*/);
 

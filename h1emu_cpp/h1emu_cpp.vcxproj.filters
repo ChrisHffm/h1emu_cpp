@@ -52,6 +52,12 @@
     <Filter Include="source\plugin">
       <UniqueIdentifier>{e7c08e8a-f548-45ca-a0aa-c2e34fc9d9ea}</UniqueIdentifier>
     </Filter>
+    <Filter Include="header\base\gatewayserver">
+      <UniqueIdentifier>{a2491c84-e39e-4001-8136-29051e9b4c1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gatewayserver">
+      <UniqueIdentifier>{f9cd2fc6-2b20-4e7e-b438-f8a868d37ce4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -99,6 +105,9 @@
     <ClInclude Include="afk.h">
       <Filter>header\plugin</Filter>
     </ClInclude>
+    <ClInclude Include="gatewayserver.h">
+      <Filter>header\base\gatewayserver</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -127,6 +136,9 @@
     </ClCompile>
     <ClCompile Include="afk.cpp">
       <Filter>source\plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="gatewayserver.cpp">
+      <Filter>source\gatewayserver</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
