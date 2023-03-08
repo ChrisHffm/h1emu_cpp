@@ -137,9 +137,6 @@
     <ClCompile Include="afk.cpp">
       <Filter>source\plugin</Filter>
     </ClCompile>
-    <ClCompile Include="gatewayserver.cpp">
-      <Filter>source\gatewayserver</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="server.cpp.svd">

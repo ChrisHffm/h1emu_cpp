@@ -1419,6 +1419,90 @@ public:
         return verbose_print;
     }
 
+    std::ostream& to_json(std::ostream& out)
+    {
+        std::map<std::string, PacketField>::iterator f;
+        std::vector<PacketField>::iterator i;
+
+        // print name and length
+        out << "{";
+        std::string prefix = formatting_prefix;
+        if (name().size() > 0)
+        {
+            out << prefix << "\"name\": \"" << name() << "\"";
+            out << ", \"total_size\": " << std::dec << length() << ", ";
+        }
+
+        out << "\"fields\": [";
+        for (i = fields_by_id.begin(); i != fields_by_id.end(); i++)
+        {
+            for (f = fields.begin(); f != fields.end(); f++)
+            {
+                if (f->second.field_id == i->field_id)
+                {
+                    break;
+                }
+            }
+
+            if (i != fields_by_id.begin())
+            {
+                out << ", ";
+            }
+
+            
+             out << prefix << "\"" << f->first << "\": ";
+            
+
+            if (i->is_pointer())
+            {
+                uint8_t* vals = msg_buffer.get_uint8_ptr(i->offset);
+
+                if (has_sub_packet(f->first))
+                {
+                    Packet& sub = sub_packet(f->first);
+                    sub.set_formatting_prefix(formatting_prefix);
+                    sub.to_json(out);
+                }
+                else
+                {
+                    out << "\"" << std::string((const char*)vals, i->length) << "\""; // will have spaces as a fill
+#if 0 // todo: could do it in utf8 if it's a binary (non-ascii) data
+                    out << "[";
+                    uint32_t a;
+                    for (a = 0; a < i->length; a++)
+                    {
+                        out << std::hex << std::noshowbase << std::setw(2)
+                            << std::setfill('0') << (uint32_t)vals[a];
+                        if (a < i->length - 1)
+                        {
+                            out << ", ";
+                        }
+                    }
+                    out << "]";
+#endif
+                }
+            }
+            else
+            {
+                out << prefix << std::dec << get_field(i->field_id);
+            }
+
+            if (verbose())
+            {
+                out << "}";
+            }
+        }
+
+        out << "]}";
+        return out;
+    }
+
+    std::string to_json()
+    {
+        std::stringstream json;
+        to_json(json);
+        return json.str();
+    }
 private:
     bool verbose_print;
     std::string formatting_prefix;
@@ -1530,11 +1614,11 @@ inline std::ostream& operator<<(std::ostream& out, Packet& m)
                             out << "\n" << prefix << std::string(max_name_len + 15, ' ');
                         }
                     }
-                    if (a > 100)
+                    /*if (a > 100)
                     {
                         out << " (..skipping the rest of data..) ";
                         break;
-                    }
+                    }*/
                 }
                 if (vals_s.size() > 2)
                 {
